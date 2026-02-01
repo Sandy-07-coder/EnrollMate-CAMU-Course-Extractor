@@ -1,338 +1,166 @@
-# EnrollMate Chrome Extension - CAMU Integration
+# EnrollMate - CAMU Course Extractor
 
-A Chrome extension that automatically extracts course information from **CAMU enrollment page** and sends it to your **local React app** for timetable management.
+A Chrome extension that automatically extracts course enrollment data from the CAMU portal and transfers it to the EnrollMate React application for intelligent timetable planning.
 
 ---
 
 ## 🎯 Overview
 
-This Manifest V3 Chrome extension extracts course card data from **`https://www.mycamu.co.in/#/home/feed/enrolement`** and passes it to your React app running on **`http://localhost:5173`**.
+**EnrollMate Extension** is a Manifest V3 Chrome extension designed to streamline course enrollment for students using the CAMU education management system. It extracts structured course data directly from the CAMU enrollment page and seamlessly transfers it to the EnrollMate web application.
 
-**✅ No Backend** | **✅ Client-Side Only** | **✅ Local Development Ready**
+### Key Features
 
----
-
-## ✨ Features
-
-- 🎯 **One-Click Extraction**: Click extension icon to extract all CAMU course data
-- 🔍 **Smart DOM Parsing**: Targets course cards with IDs starting with `priceTab_`
-- 📊 **Structured Data**: Extracts courseName, displayName, staff, credits, and time slots
-- 🚀 **Direct Integration**: Opens React app with encoded JSON in URL query params
-- 🔒 **Domain-Specific**: Only works on `www.mycamu.co.in` for security
-- 💬 **User Feedback**: Alerts and console logs for debugging
+- 🚀 **One-Click Extraction** - Extract all available courses with a single click
+- 🔍 **Smart Parsing** - Automatically identifies and parses course details including name, credits, staff, and time slots
+- 📦 **Direct Transfer** - Sends data directly to EnrollMate via Chrome storage
+- 🔒 **Secure & Private** - Works only on CAMU domain, no external data sharing
+- ⚡ **Real-time Updates** - Instantly opens EnrollMate with your extracted courses
 
 ---
 
-## 🏗️ Architecture Flow
+## 📹 Demo
 
-```
-User on CAMU Enrollment Page
-         ↓
-Click Extension Icon
-         ↓
-Background Service Worker Activates
-         ↓
-chrome.scripting.executeScript Injects Extractor
-         ↓
-Find All: [id^='priceTab_']
-         ↓
-Parse Each Course Card DOM
-         ↓
-Build JSON Array
-         ↓
-Encode with encodeURIComponent()
-         ↓
-chrome.tabs.create()
-         ↓
-Open: http://localhost:5173/?data=<encoded_json>
-         ↓
-React App Parses & Renders
-```
+Watch how EnrollMate Extension works:
+
+<video src="https://github.com/user-attachments/assets/fb0ab2f1-5b84-4ef2-8967-d8c68b7b8515" width="600" controls></video>
 
 ---
 
-## 📦 Installation
+## 🚀 How to Use
 
-### Prerequisites
-- Google Chrome or Chromium browser
-- React app running on `http://localhost:5173` (see frontend setup)
+### 1. Installation
 
-### Load Extension (Development Mode)
+1. Download or clone this repository
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable **Developer Mode** (toggle in top-right corner)
+4. Click **"Load unpacked"**
+5. Select the `EnrollMate-Extension` folder
+6. Extension icon should appear in your toolbar
 
-1. **Download/Clone** this repository
+### 2. Usage Workflow
 
-2. **Open Chrome** and navigate to:
-   ```
-   chrome://extensions/
-   ```
-
-3. **Enable Developer Mode** (toggle in top-right corner)
-
-4. **Click "Load unpacked"** button
-
-5. **Select** the `EnrollMate-Extension` folder (containing `manifest.json`)
-
-6. **Verify** the extension appears with a blue "E" icon
-
----
-
-## 🚀 Local Testing Workflow
-
-### Step 1: Start React App
-
-```bash
-cd /path/to/EnrollMate/frontend
-npm install
-npm run dev
-```
-
-✅ App should run at: `http://localhost:5173`
-
-### Step 2: Navigate to CAMU
-
-Open Chrome and go to:
+#### Step 1: Navigate to CAMU Enrollment Page
 ```
 https://www.mycamu.co.in/#/home/feed/enrolement
 ```
+- Login to your CAMU account
+- Ensure course cards are fully loaded
 
-**Important**: Login and ensure course cards are visible on the page.
+#### Step 2: Click Extension Icon
+- Click the EnrollMate extension icon in your Chrome toolbar
+- The extension will automatically:
+  - Scan the page for course cards
+  - Extract course information (name, credits, staff, time slots)
+  - Save data to Chrome storage
+  - Open EnrollMate application in a new tab
 
-### Step 3: Extract Data
-
-1. **Wait** for all course cards to load
-2. **Click** the EnrollMate extension icon (blue "E" in toolbar)
-3. **Extension** will:
-   - Scan for `[id^="priceTab_"]` elements
-   - Extract course details from each card
-   - Show alert with count (e.g., "Extracted 15 courses")
-   - Open new tab with React app
-
-### Step 4: View in React
-
-React app will:
-- Automatically detect `?data=...` query parameter
-- Parse and validate JSON
-- Load courses into state
-- Clean URL (remove query param)
-- Navigate to `/home` page
-- Display interactive timetable
+#### Step 3: View in EnrollMate
+- EnrollMate automatically loads the extracted courses
+- Create your optimal timetable using the interactive interface
+- Save and manage your course selections
 
 ---
 
-## 📊 Extracted Data Structure
+## 📊 Extracted Data Format
 
-```javascript
-[
-  {
-    uniqueId: "priceTab_CS101",
-    courseName: "Introduction to Computer Science [3 Credits]",
-    displayName: "Intro to CS",
-    staff: "Dr. John Doe",
-    credits: 3,
-    slots: [
-      { day: "Monday", time: "8-10" },
-      { day: "Wednesday", time: "10-12" },
-      { day: "Friday", time: "1-3" }
-    ]
-  },
-  // ... more courses
-]
-```
-
-### Field Details
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `uniqueId` | string | Card's HTML `id` attribute (e.g., `priceTab_101`) |
-| `courseName` | string | Full course name with code and credits |
-| `displayName` | string | Short/display name for UI |
-| `staff` | string | Instructor/faculty name |
-| `credits` | number | Credit hours (parsed from text) |
-| `slots` | array | Schedule with `day` and `time` objects |
-
----
-
-## 🔧 Customization for Different DOM Structures
-
-If CAMU's HTML structure changes, update selectors in `background.js`:
-
-```javascript
-// Course name selectors
-const courseNameElement = card.querySelector(
-  '.course-name, .courseName, [class*="course-name"], ' +
-  '.course-title, [class*="course-title"], ' +
-  'h3, h4, .title'
-);
-
-// Staff selectors
-const staffElement = card.querySelector(
-  '.staff, .instructor, [class*="staff"], [class*="instructor"], ' +
-  '.teacher, [class*="teacher"], .faculty, [class*="faculty"]'
-);
-
-// Add more selectors as needed...
-```
-
----
-
-## 🔒 Permissions Explained
-
-### Required Permissions
-
-1. **`activeTab`**: Access current tab's content only when clicked
-2. **`scripting`**: Inject extraction script into active tab
-
-### Host Permissions
+The extension extracts the following information for each course:
 
 ```json
-"host_permissions": [
-  "https://www.mycamu.co.in/*"
-]
+{
+  "uniqueId": "T1-Q5",
+  "courseName": "Mathematics for Artificial Intelligence",
+  "displayName": "Math AI",
+  "staff": "Premila S C",
+  "credits": 4,
+  "slots": [
+    { "day": "Monday", "time": "10-12" },
+    { "day": "Thursday", "time": "10-12" }
+  ]
+}
 ```
 
-✅ **Minimal & Secure**: Only works on CAMU domain, nowhere else.
+### Data Mapping
+
+- **Course Names** → Short names via `Course-Short-Name.json`
+- **Time Slots** → Automatically consolidated into time ranges
+- **Staff Names** → Extracted from department-staff format
+
+---
+
+## 🔧 Technical Details
+
+### Architecture
+- **Manifest Version**: V3
+- **Content Script**: Runs on CAMU pages to extract DOM data
+- **Background Worker**: Handles data storage and tab management
+- **Storage**: Chrome storage API for cross-tab data sharing
+
+### Permissions
+- `activeTab` - Access current tab when extension is clicked
+- `scripting` - Inject content script for data extraction
+- `storage` - Store extracted data for EnrollMate access
+
+### Supported URLs
+- `https://www.mycamu.co.in/*` (Production)
+- `http://localhost:5173/*` (Local development)
+- `https://enroll-mate.vercel.app/*` (Deployed app)
+
+---
+
+## 🛠️ Configuration
+
+### Custom Course Name Mapping
+
+Edit `Course-Short-Name.json` to customize course display names:
+
+```json
+{
+  "Your Full Course Name": "Short Name",
+  "Advanced C Programming": "Adv C"
+}
+```
+
+### Change Target Application URL
+
+Edit `background.js`:
+
+```javascript
+chrome.tabs.create({ 
+  url: 'https://your-custom-url.com/home#from-extension'
+});
+```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Extension Icon Does Nothing
+| Issue | Solution |
+|-------|----------|
+| Extension not working | Verify you're on `mycamu.co.in` enrollment page |
+| No courses extracted | Ensure page is fully loaded, check console for errors |
+| EnrollMate doesn't open | Check if URL is correct in `background.js` |
+| Data not appearing | Clear Chrome storage and try again |
 
-**Check:**
-- Are you on `https://www.mycamu.co.in/*`?
-- Is the extension enabled in `chrome://extensions/`?
-- Open DevTools Console (F12) for error messages
+### Debug Mode
 
-### No Courses Extracted
-
-**Possible Causes:**
-1. Page not fully loaded - wait a few seconds
-2. No elements with `id^="priceTab_"` - verify HTML structure
-3. JavaScript errors - check console
-
-**Debug Steps:**
-1. Right-click extension icon → "Inspect popup" (none in this case)
-2. Go to `chrome://extensions/` → Click "service worker" under EnrollMate
-3. View background script console logs
-
-### React App Doesn't Load Courses
-
-**Check:**
-1. React dev server running on `http://localhost:5173`?
-2. Check browser console for JSON parsing errors
-3. Verify `parseExtensionData()` is called in `App.jsx`
-
-### Alert Says "No course cards found"
-
-**Verify:**
-```javascript
-// Open DevTools Console on CAMU page and run:
-console.log(document.querySelectorAll('[id^="priceTab_"]'));
-// Should show NodeList of course cards
-```
-
-If empty, CAMU structure may have changed - inspect HTML and update selectors.
-
----
-
-## 📝 Development Notes
-
-### Testing Without CAMU
-
-Create a local test HTML file:
-
-```html
-<!DOCTYPE html>
-<html>
-<head><title>Test CAMU Page</title></head>
-<body>
-  <div id="priceTab_TEST1">
-    <h3 class="course-name">CS101 [3 Credits]</h3>
-    <div class="staff">Dr. Test</div>
-    <span class="slot">Monday 8-10</span>
-  </div>
-</body>
-</html>
-```
-
-Save as `test.html`, open in Chrome, click extension.
-
-### Viewing Extracted Data
-
-Add to `background.js` after extraction:
-
-```javascript
-console.table(extractedData); // View as table
-```
-
-### Modifying React URL
-
-To use production URL instead of localhost:
-
-```javascript
-// In background.js, change:
-const reactUrl = `https://your-deployed-app.vercel.app/?data=${encodedData}`;
-```
-
----
-
-## 🎨 Customizing Icons
-
-Replace placeholder icons in `icons/` folder:
-
-- `icon16.png` - 16x16px (toolbar)
-- `icon48.png` - 48x48px (extensions page)
-- `icon128.png` - 128x128px (Chrome Web Store)
-
-Use transparent PNG with your branding.
-
----
-
-## 🚢 Distribution
-
-### For Personal Use
-Share the folder with teammates - they load as "unpacked" extension.
-
-### For Public Release
-1. Zip the `EnrollMate-Extension` folder
-2. Create Chrome Web Store developer account ($5 fee)
-3. Upload zip to [Chrome Web Store Dashboard](https://chrome.google.com/webstore/devconsole)
-4. Fill metadata and submit for review
-
----
-
-## 📚 Resources
-
-- [Chrome Extension Docs](https://developer.chrome.com/docs/extensions/)
-- [Manifest V3 Migration](https://developer.chrome.com/docs/extensions/mv3/intro/)
-- [chrome.scripting API](https://developer.chrome.com/docs/extensions/reference/scripting/)
-
----
-
-## 🔐 Privacy & Security
-
-- ✅ **No data collection**: All processing happens locally
-- ✅ **No external requests**: No analytics or tracking
-- ✅ **Minimal permissions**: Only CAMU domain access
-- ✅ **User-triggered**: Only runs when you click the icon
-- ✅ **Open source**: Review all code before installing
+Open Chrome DevTools:
+- **Content Script Console**: Right-click page → Inspect → Console
+- **Background Worker**: `chrome://extensions/` → Service Worker link
 
 ---
 
 ## 👥 Credits
 
-- 💡 **Concept**: Prahathieswaran
-- 💻 **Development**: Santhosh
-- 🏫 **Supported by**: Tech Society
+- **Developer**: Santhosh Sandy
+- **Concept**: Prahathieswaran
+- **Organization**: RW Tech Society
 
 ---
 
 ## 📄 License
 
-Educational and personal use.
+For educational and personal use only.
 
 ---
 
 **Built with ❤️ for CAMU students**
-
-🎓 Happy Course Planning!

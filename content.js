@@ -2,6 +2,82 @@
 // Runs in the context of the CAMU/test page
 // Extracts course data and saves to localStorage
 
+// Course name to short name mapping (loaded from JSON file)
+let COURSE_SHORT_NAMES = {};
+
+// Load course name mappings from JSON file
+async function loadCourseNameMappings() {
+  try {
+    const response = await fetch(chrome.runtime.getURL('Course-Short-Name.json'));
+    COURSE_SHORT_NAMES = await response.json();
+    console.log('✅ Loaded course name mappings:', Object.keys(COURSE_SHORT_NAMES).length, 'courses');
+  } catch (error) {
+    console.error('❌ Failed to load Course-Short-Name.json:', error);
+    // Fallback: empty mapping (will use full course names)
+    COURSE_SHORT_NAMES = {};
+  }
+}
+
+// Helper function to get short name for a course
+function getShortName(courseName) {
+  // Try exact match first
+  if (COURSE_SHORT_NAMES[courseName]) {
+    return COURSE_SHORT_NAMES[courseName];
+  }
+  
+  // Try case-insensitive match
+  const lowerCourseName = courseName.toLowerCase();
+  for (const [fullName, shortName] of Object.entries(COURSE_SHORT_NAMES)) {
+    if (fullName.toLowerCase() === lowerCourseName) {
+      return shortName;
+    }
+  }
+  
+  // Try partial match (if course name contains the key)
+  for (const [fullName, shortName] of Object.entries(COURSE_SHORT_NAMES)) {
+    if (courseName.includes(fullName) || fullName.includes(courseName)) {
+      return shortName;
+    }
+  }
+  
+  // Fallback: generate short name from course name
+  // Extract capital letters and significant words
+  return generateShortName(courseName);
+}
+
+// Generate a short name from a course name by extracting capital letters
+function generateShortName(courseName) {
+  // Remove common words and extract initials
+  const stopWords = ['the', 'of', 'in', 'to', 'and', 'for', 'with', 'using', 'a', 'an'];
+  
+  // Split by spaces and filter out stop words
+  const words = courseName
+    .split(/\s+/)
+    .filter(word => !stopWords.includes(word.toLowerCase()));
+  
+  // Try to extract capital letters first (for acronym-style names)
+  const capitals = courseName.match(/[A-Z]/g);
+  
+  // If we have 2-4 capital letters, use them as acronym
+  if (capitals && capitals.length >= 2 && capitals.length <= 4) {
+    return capitals.join('');
+  }
+  
+  // Otherwise, take first letter of each significant word (max 4 letters)
+  if (words.length > 0) {
+    return words
+      .slice(0, 4)
+      .map(word => word.charAt(0).toUpperCase())
+      .join('');
+  }
+  
+  // Final fallback: take first 2-3 letters of the course name
+  return courseName.substring(0, Math.min(3, courseName.length)).toUpperCase();
+}
+
+// Load mappings on script initialization
+loadCourseNameMappings();
+
 console.log('🟢 EnrollMate content script loaded');
 
 // Listen for messages from background script
@@ -178,23 +254,30 @@ function extractFromRealPortal(card, scheduleBlock, cardIndex, schedIndex) {
     const credits = creditsMatch ? parseInt(creditsMatch[1], 10) : 3;
 
     // Extract staff & uniqueId from .stud-enroll_details (at schedule block level)
-    // Format: "UG - 04, T1-P3, AI - Kisothkumar E"
+    // Format: "UG - 25, T1-Q5, Maths - Premila S C"
     const detailsElement = scheduleBlock.querySelector('.stud-enroll_details');
     const detailsText = detailsElement ? detailsElement.textContent.trim() : '';
     
     // Split by comma and extract parts
     const parts = detailsText.split(',').map(p => p.trim());
     
-    // Extract uniqueId (e.g., T1-P3) - second part
+    // Extract uniqueId (e.g., T1-Q5) - second part
     const uniqueId = parts[1] || `${courseCode}-${schedIndex}`;
     
-    // Extract staff name (e.g., "AI - Kisothkumar E") - last part
-    // Remove department prefix (e.g., "AI - ")
+    // Extract staff name from last part
+    // Format can be: "Maths - Premila S C" or "Department - Staff Name"
     let staff = 'TBA';
     if (parts.length > 2) {
       const staffPart = parts[parts.length - 1];
-      const staffMatch = staffPart.match(/(?:[A-Z]+\s*-\s*)?(.+)/);
-      staff = staffMatch ? staffMatch[1].trim() : staffPart;
+      
+      // If there's a dash, the staff name is after the dash
+      if (staffPart.includes('-')) {
+        const staffMatch = staffPart.split('-');
+        staff = staffMatch.length > 1 ? staffMatch[staffMatch.length - 1].trim() : staffPart.trim();
+      } else {
+        // No dash means it's just the staff name
+        staff = staffPart.trim();
+      }
     }
 
     // Extract schedule slots from .enroll-date_details (at schedule block level)
@@ -262,7 +345,7 @@ function extractFromRealPortal(card, scheduleBlock, cardIndex, schedIndex) {
     return {
       uniqueId: uniqueId,
       courseName: courseName,
-      displayName: 'xyz', // Placeholder as requested
+      displayName: getShortName(courseName),
       staff: staff,
       credits: credits,
       slots: slots
@@ -291,12 +374,12 @@ function extractFromDemoSite(card, index) {
     );
     const courseName = courseNameElement ? courseNameElement.textContent.trim() : `Course ${index + 1}`;
 
-    // Extract display name
+    // Extract display name - use mapping or fallback to element
     const displayNameElement = card.querySelector(
       '.display-name, .displayName, [class*="display-name"], ' +
       '.short-name, [class*="short"]'
     );
-    const displayName = displayNameElement ? displayNameElement.textContent.trim() : courseName;
+    const displayName = displayNameElement ? displayNameElement.textContent.trim() : getShortName(courseName);
 
     // Extract staff
     const staffElement = card.querySelector(
