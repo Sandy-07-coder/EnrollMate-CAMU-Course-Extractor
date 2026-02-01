@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test localStorage Extension</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 EnrollMate localStorage Test Page</h1>
+  
+  <div class="test-section">
+    <h2>1. Check localStorage</h2>
+    <button onclick="checkLocalStorage()">Check localStorage</button>
+    <button onclick="clearLocalStorage()">Clear localStorage</button>
+    <div id="storage-result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>2. Test Data Storage</h2>
+    <button onclick="testStorage()">Store Test Data</button>
+    <div id="test-result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>3. View Stored Courses</h2>
+    <button onclick="viewCourses()">View Courses</button>
+    <div id="courses-result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>4. Open React App</h2>
+    <button onclick="openReactApp()">Open React App</button>
+    <p><small>This will open http://localhost:5173/ in a new tab</small></p>
+  </div>
+
+  <script>
+    function checkLocalStorage() {
+      const result = document.getElementById('storage-result');
+      const courses = localStorage.getItem('enrollmate_courses');
+      const timestamp = localStorage.getItem('enrollmate_timestamp');
+      
+      if (courses) {
+        try {
+          const data = JSON.parse(courses);
+          result.innerHTML = `
+            <p class="success">✅ Found ${data.length} courses in localStorage</p>
+            <p>Timestamp: ${timestamp || 'N/A'}</p>
+            <p>Data size: ${new Blob([courses]).size} bytes</p>
+          `;
+        } catch (e) {
+          result.innerHTML = `<p class="error">❌ Error parsing data: ${e.message}</p>`;
+        }
+      } else {
+        result.innerHTML = '<p>No data found in localStorage</p>';
+      }
+    }
+
+    function clearLocalStorage() {
+      localStorage.removeItem('enrollmate_courses');
+      localStorage.removeItem('enrollmate_timestamp');
+      document.getElementById('storage-result').innerHTML = '<p class="success">✅ localStorage cleared</p>';
+    }
+
+    function testStorage() {
+      const testData = [
+        {
+          uniqueId: "TEST001",
+          courseName: "Test Course 1",
+          displayName: "TC1",
+          staff: "Test Instructor",
+          credits: 3,
+          slots: [
+            { day: "Monday", time: "8-10" },
+            { day: "Wednesday", time: "10-12" }
+          ]
+        },
+        {
+          uniqueId: "TEST002",
+          courseName: "Test Course 2",
+          displayName: "TC2",
+          staff: "Another Instructor",
+          credits: 4,
+          slots: [
+            { day: "Tuesday", time: "1-3" },
+            { day: "Thursday", time: "3-5" }
+          ]
+        }
+      ];
+
+      try {
+        localStorage.setItem('enrollmate_courses', JSON.stringify(testData));
+        localStorage.setItem('enrollmate_timestamp', new Date().toISOString());
+        document.getElementById('test-result').innerHTML = `
+          <p class="success">✅ Stored ${testData.length} test courses</p>
+          <pre>${JSON.stringify(testData, null, 2)}</pre>
+        `;
+      } catch (e) {
+        document.getElementById('test-result').innerHTML = `
+          <p class="error">❌ Error storing data: ${e.message}</p>
+        `;
+      }
+    }
+
+    function viewCourses() {
+      const result = document.getElementById('courses-result');
+      const courses = localStorage.getItem('enrollmate_courses');
+      
+      if (courses) {
+        try {
+          const data = JSON.parse(courses);
+          result.innerHTML = `
+            <h3>Stored Courses (${data.length}):</h3>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        } catch (e) {
+          result.innerHTML = `<p class="error">❌ Error: ${e.message}</p>`;
+        }
+      } else {
+        result.innerHTML = '<p>No courses stored. Use the extension to extract courses.</p>';
+      }
+    }
+
+    function openReactApp() {
+      window.open('http://localhost:5173/', '_blank');
+    }
+
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      checkLocalStorage();
+    });
+  </script>
+</body>
+</html>

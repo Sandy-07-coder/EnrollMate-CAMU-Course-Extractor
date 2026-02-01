@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "EnrollMate - CAMU Course Extractor",
+  "version": "2.0.0",
+  "description": "Extract course information from CAMU enrollment page and send to EnrollMate React app via localStorage",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost:5173/*",
+    "http://localhost:5174/*",
+    "http://localhost:5175/*",
+    "https://*.mycamu.co.in/*",
+    "https://mycamu.co.in/*",
+    "http://*.mycamu.co.in/*",
+    "https://enroll-mate.vercel.app/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.mycamu.co.in/*",
+        "https://mycamu.co.in/*",
+        "http://localhost:5173/*",
+        "http://localhost:5174/*",
+        "http://localhost:5175/*",
+        "https://enroll-mate.vercel.app/*"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Extract CAMU Course Data"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
